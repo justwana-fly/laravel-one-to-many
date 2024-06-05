@@ -39,6 +39,5 @@ Route::fallback(function () {
 });
 
 
-Route::resource('admin/categories', CategoryController::class);
 
 
