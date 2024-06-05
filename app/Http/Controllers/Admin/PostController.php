@@ -3,15 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Post;
-
 use App\Models\Category;
+use App\Models\Type; 
 use Illuminate\Http\Request;
 use App\Http\Requests\StorePostRequest;
 use App\Http\Requests\UpdatePostRequest;
-
-// use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,10 +19,8 @@ class PostController extends Controller
      */
     public function index()
     {
-        //$posts = Post::all();
         $id = Auth::id();
         $posts = Post::where('user_id', $id)->paginate(3);
-        //dd($posts);
         return view('admin.posts.index', compact('posts'));
     }
 
@@ -35,7 +30,8 @@ class PostController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('admin.posts.create', compact('categories'));
+        $types = Type::all(); // Aggiungi questa linea per ottenere tutte le tipologie
+        return view('admin.posts.create', compact('categories', 'types'));
     }
 
     /**
@@ -46,26 +42,15 @@ class PostController extends Controller
         $form_data = $request->validated();
         $form_data['slug'] = Post::generateSlug($form_data['title']);
         $form_data['user_id'] = Auth::id();
-        if ($request->hasFile('image')) {
-            //dd($request->image);
-            $name = $request->image->getClientOriginalName(); //o il nome che volete dare al file
-            // $path = $request->file('image')->storeAs(
-            //     'post_images',
-            //      $name
-            // );
 
-            //dd($name);
+        if ($request->hasFile('image')) {
+            $name = $request->image->getClientOriginalName();
             $path = Storage::putFileAs('post_images', $request->image, $name);
-            //$path = Storage::put('post_images', $request->image);
             $form_data['image'] = $path;
         }
-        //dd($path);// post_images/nomefile.png
-
-
 
         $newPost = Post::create($form_data);
         return redirect()->route('admin.posts.show', $newPost->slug);
-
     }
 
     /**
@@ -73,7 +58,6 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        //dd($post);
         return view('admin.posts.show', compact('post'));
     }
 
@@ -81,10 +65,11 @@ class PostController extends Controller
      * Show the form for editing the specified resource.
      */
     public function edit(Post $post)
-    {
-        $categories = Category::all();
-        return view('admin.posts.edit', compact('post', 'categories'));
-    }
+{
+    $categories = Category::all();
+    $types = Type::all(); // Recupera tutte le tipologie
+    return view('admin.posts.edit', compact('post', 'categories', 'types'));
+}
 
     /**
      * Update the specified resource in storage.
@@ -93,22 +78,21 @@ class PostController extends Controller
     {
         $form_data = $request->all();
         $form_data['user_id'] = Auth::id();
+
         if ($post->title !== $form_data['title']) {
             $form_data['slug'] = Post::generateSlug($form_data['title']);
         }
+
         if ($request->hasFile('image')) {
             if ($post->image) {
                 Storage::delete($post->image);
             }
             $name = $request->image->getClientOriginalName();
-            //dd($name);
             $path = Storage::putFileAs('post_images', $request->image, $name);
             $form_data['image'] = $path;
         }
-        // DB::enableQueryLog();
+
         $post->update($form_data);
-        // $query = DB::getQueryLog();
-        // dd($query);
         return redirect()->route('admin.posts.show', $post->slug);
     }
 
@@ -121,6 +105,6 @@ class PostController extends Controller
             Storage::delete($post->image);
         }
         $post->delete();
-        return redirect()->route('admin.posts.index')->with('message', $post->title . ' è stato eliminato');
+        return redirect()->route('admin.posts.index')->with('message', $post->title . ' è stato eliminato');
     }
 }
